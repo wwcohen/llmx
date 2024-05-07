@@ -18,11 +18,23 @@ data/NQ_FiD.jsonl:
 
 data/ar: data/kamalloo-ar.jsonl data/explain-ar.jsonl
 
+## collect outputs into data
+
 data/explain-ar.jsonl: 
+	./explaining_ar.py
 	cat buf/explain.*.jsonl > data/explain-ar.jsonl
 
 data/kamalloo-ar.jsonl: 
 	cat buf/kamalloo.*.jsonl > data/kamalloo-ar.jsonl
 
-buf/kamalloo.3598-3610.jsonl: 
-	echo ./kamalloo_ar.py
+## Run statistical analysis
+
+eval: eval-kamalloo-ar eval-explaining-ar
+
+eval-kamalloo-ar:
+	./stats.py --autorater data/kamalloo-ar.jsonl --call_u_n
+
+eval-explaining-ar:
+	./stats.py --autorater data/explaining-ar.jsonl
+
+

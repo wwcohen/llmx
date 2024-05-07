@@ -1,6 +1,9 @@
 #!/usr/bin/python3.8
 
 # Autorate using an autorater that gives an explanation
+# The explanation is just a letter A,B,C,D - see the prompt for
+# definitions but basically each letter should indicate a different
+# level of confidence
 
 import argparse
 import json
@@ -35,7 +38,9 @@ with open('data/NQ_FiD.jsonl') as fp:
   fid = [json.loads(line) for line in fp]
 
 parser = argparse.ArgumentParser(prog='explaining_ar')
-parser.add_argument('--start') 
+parser.add_argument(
+  '--start',
+  help='example number to start at - assumes previous examples stored in buf/*.jsonl')
 args = parser.parse_args()
 print(args)
 

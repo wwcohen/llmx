@@ -28,12 +28,6 @@ def parse_yn_response(long_response):
   else:
     return 'u'
 
-parser = argparse.ArgumentParser(prog='kamalloo_ar')
-parser.add_argument('--fid', action='store_true')
-parser.add_argument('--human', action='store_true')
-args = parser.parse_args()
-
-
 with open('data/NQ_FiD.jsonl') as fp:
   # dicts of question, answer, prediction
   data = [json.loads(line) for line in fp]

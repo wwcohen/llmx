@@ -1,5 +1,6 @@
 #!/usr/bin/python3.8
 
+import argparse
 import dataclasses
 from icecream import ic
 import json
@@ -17,7 +18,7 @@ def load_json(files):
             result.extend([json.loads(line) for line in fp])
     return result
 
-def join_ratings(ar_files):
+def join_ratings(ar_file):
     #Question 'Model answer' Acceptable? ...
     human_df = pd.read_csv('data/NQ301_human.tsv', sep='\t')
     human_df = pd.DataFrame(
@@ -27,7 +28,8 @@ def join_ratings(ar_files):
             norm_pred=[util.normalize_answer(a) for a in human_df['Model answer']],
             h=human_df['Acceptable?']))
     #question, answer:list(str), prediction, ynu, long_answer
-    ar_dicts = load_json(ar_files)
+    with open(ar_file) as fp:
+        ar_dicts = [json.loads(line) for line in fp]
     ar_df = pd.DataFrame(
         dict(
             question=[d['question'] for d in ar_dicts],
@@ -77,25 +79,63 @@ def classical_ci(s_n, s_N):
     half_w = 1.96 * math.sqrt(var/(tot_size - 1))
     return CI(method='classical', lo=mean - half_w, hi=mean + half_w)
 
-def stratified_ci(s_n, s_N):
+def stratified_ci(s_n, s_N, correction=True, trace=True):
     ar_values = set(s_n.a)
+    # labeled observations
     strata = {val: s_n[s_n.a == val].copy() for val in ar_values}
     for i in strata:
         strata[i]['y'] = [float(h == 'Yes') for h in strata[i].h]
     strata_size = {i:len(strata_i) for i, strata_i in strata.items()}
     tot_size = sum(strata_size.values())
-    strata_prob = {i:strata_size[i]/tot_size for i in strata}
-    mean = sum(strata_prob[i] * strata[i].y.mean() for i in strata)
+    # unlabeled data
+    unlab_strata = {val: s_N[s_N.a == val].copy() for val in ar_values}
+    unlab_strata_size = {i:len(unlab_strata_i) for i, unlab_strata_i in unlab_strata.items()}
+    unlab_tot_size = sum(unlab_strata_size.values())
+    unlab_strata_prob = {i:unlab_strata_size[i] / unlab_tot_size for i in strata}
+    # stratification
+    # 1 / N * sum_{h=1}^L N_h xbar_h
+    mean = sum(unlab_strata_prob[i] * strata[i].y.mean() for i in strata)
+    # sum_{h=1}^L (N_h/N)^2 (N_h - n_h) / (N_h - 1) sigma^2_h / n_h
+    if not correction:
+        correct = {i: 1 for i in strata}
+    else:
+        correct = {i: (unlab_strata_size[i] - strata_size[i]) / (unlab_strata_size[i] - 1)
+                   for i in strata}
     var = sum(
-        strata_prob[i]**2 * strata[i].y.var() / (strata_size[i] - 1)
+        unlab_strata_prob[i]**2 * correct[i] * (strata[i].y.var() / strata_size[i])
         for i in strata)
     half_w = 1.96 * math.sqrt(var)
+    if trace:
+        n = tot_size
+        N = unlab_tot_size
+        ic(n, N, ar_values)
+        for i in sorted(list(ar_values)):
+            print('-' * 10, f'strata {i}', '-' * 10)
+            n_h = strata_size[i]
+            N_h = unlab_strata_size[i]
+            p_h = unlab_strata_prob[i]
+            m_h = strata[i].y.mean()
+            sd_h = math.sqrt(strata[i].y.var())
+            se_h = math.sqrt(strata[i].y.var()) / n_h
+            ic(N_h, n_h, p_h, m_h, sd_h, se_h)
     return CI(method='stratified', lo=mean - half_w, hi=mean + half_w)
 
-def analyze():
-    s_n, s_N = join_ratings(sys.argv[1:])
+def analyze(args):
+    s_n, s_N = join_ratings(args.autorater)
     print(classical_binom_ci(s_n, s_N))
     print(classical_ci(s_n, s_N))
-    print(stratified_ci(s_n, s_N))
+    print(stratified_ci(s_n, s_N, correction=args.correction))
 
-analyze()
+parser = argparse.ArgumentParser(prog='stats')
+parser.add_argument(
+    '--autorater',
+    help='autorater output file, eg "data/explain-ar.jsonl" or "data/kamaloo-ar.jsonl"')
+parser.add_argument(
+    '--correction', action='store_true', 
+    help='use small-sample correction')
+parser.add_argument(
+    '--call_u_n', action='store_true', 
+    help='reclassified "u" autorater labels as "n"')
+args = parser.parse_args()
+print(args)
+analyze(args)
