@@ -1,5 +1,8 @@
 #!/usr/bin/python3.8
 
+# joining autorater and human rater stats
+# stratified sampling confidence interval and classical confidence interval
+
 import argparse
 import dataclasses
 from icecream import ic
@@ -79,7 +82,7 @@ def classical_ci(s_n, s_N):
     half_w = 1.96 * math.sqrt(var/(tot_size - 1))
     return CI(method='classical', lo=mean - half_w, hi=mean + half_w)
 
-def stratified_ci(s_n, s_N, correction=True, trace=True):
+def stratified_ci(s_n, s_N, correction=False, trace=True):
     ar_values = set(s_n.a)
     # labeled observations
     strata = {val: s_n[s_n.a == val].copy() for val in ar_values}

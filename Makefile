@@ -32,9 +32,9 @@ data/kamalloo-ar.jsonl:
 eval: eval-kamalloo-ar eval-explaining-ar
 
 eval-kamalloo-ar:
-	./stats.py --autorater data/kamalloo-ar.jsonl --call_u_n
+	./stats.py --autorater data/kamalloo-ar.jsonl --call_u_n  --correction
 
 eval-explaining-ar:
-	./stats.py --autorater data/explaining-ar.jsonl
+	./stats.py --autorater data/explain-ar.jsonl  --correction
 
 

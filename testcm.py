@@ -1,5 +1,7 @@
 #!/usr/bin/python3.8
 
+# testing checkpoint manager
+
 import util
 
 def test_prompt(d):

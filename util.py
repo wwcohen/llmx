@@ -8,6 +8,7 @@ import re
 import string
 import time
 
+import anthropic
 import groq
 import mistralai.client
 import mistralai.models
@@ -89,8 +90,17 @@ def llm(prompt, service='groq', model=None):
         role='user', content=prompt)],
       model=model)
     return chat_response.choices[0].message.content
+  elif service == 'anthropic':
+    if model is None: model='claude-3-haiku-20240307'
+    client = anthropic.Anthropic(
+      api_key=os.environ.get('ANTHROPIC_API_KEY'))
+    message = client.messages.create(
+      max_tokens=1024,
+      model=model,
+      messages=[{"role": "user", "content": prompt}])
+    return message.content[0].text
   else:
-      raise ValueError(f'invalid service {service}')
+    raise ValueError(f'invalid service {service}')
 
 # run evaluation with a model
 
